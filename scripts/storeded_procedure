@@ -1,0 +1,203 @@
+**stored procedures**
+/*CREATING  ALL THE TABLES AT A TIME AND DROPING ALL THE TABLE AT A TIME 
+INSERTING DATA FROM CSV FILES VIA COPY METHOD   IN THE STORED PROEDURES..*/
+
+
+
+
+call bronze.load_bronze();
+
+
+create or replace procedure bronze.load_bronze()
+language plpgsql
+as $$ 
+begin 
+    
+			raise notice 'creating schemas';
+			
+			
+			--CREATING SCHEMAS
+			--create schema bronze;
+			--create schema silver;
+			--create schema gold;
+		
+			raise notice 'loading bornze layer ';
+			
+			--1)CREATING TABLE cust_info IN BRONZE 
+			--1)CUSTOMER TABLE
+			--truncate table bronze.crm_customer_info;
+			raise notice 'loading CRM tables';
+		
+			raise notice 'dropping table:bronze.crm_customer_info';
+
+			drop table if exists bronze.crm_customer_info;
+			
+			create table bronze.crm_customer_info(
+			cst_id int ,
+			cst_key varchar(50),
+			cst_firstname varchar(50),
+			cst_lastname varchar(50),
+			cst_marital_status varchar(50),
+			cst_gndr varchar(50),
+			cst_create_date date
+			);
+			
+			COPY bronze.crm_customer_info
+			FROM 'C:\pg_admin_folder\cust_info.csv'
+			DELIMITER ','
+			CSV
+			HEADER
+			NULL '';
+			
+			raise notice 'inserting data into table:bronze.crm_customer_info';
+		
+			
+			--select *from bronze.crm_customer_info
+			--------------------------------------
+			--------------------------------------
+			--2)CREATING TABLE   bronze.crm_prd_info IN BRONZE 
+			
+			--truncate table bronze.crm_prd_info;
+			--2)PRODUCT TABLE 
+			
+			drop table if exists bronze.crm_prd_info;
+			raise notice 'dropping table:bronze.crm_prd_info';
+		
+			
+			create table bronze.crm_prd_info(
+			prd_id int,
+			prd_key varchar(40),
+			prd_nm varchar(40),
+			prd_cost int,
+			prd_line varchar(40),
+			prd_start_dt date,
+			prd_end_dt date
+			);
+			
+			COPY bronze.crm_prd_info
+			FROM 'C:\pg_admin_folder\prd_info.csv'
+			DELIMITER ','
+			CSV
+			HEADER
+			NULL '';
+			raise notice 'inserting data into table:bronze.crm_prd_info';
+		
+			
+			--select*from bronze.crm_prd_info;
+			
+			--------------------------------------------------------
+			--------------------------------------------------------
+			
+			--3)CREATing table sales_details in bronze from crm folder..
+			--3)SALES TABLE
+			drop table if exists bronze.crm_sales_details;
+			
+			
+			create table bronze.crm_sales_details(
+			sls_ord_num	varchar(40),
+			sls_prd_key varchar(40),
+			sls_cust_id int,
+			sls_order_dt int,
+			sls_ship_dt int,
+			sls_due_dt int,
+			sls_sales int,
+			sls_quantity int,
+			sls_price int
+			);
+			
+			
+			COPY bronze.crm_sales_details
+			FROM 'C:\pg_admin_folder\sales_details.csv'
+			DELIMITER ','
+			CSV
+			HEADER
+			NULL '';
+			
+			--select *from bronze.crm_sales_details;
+			
+			
+			
+			---------------------------------------------------
+			
+			--------------------------------
+			raise notice 'loadin ERP tables';
+			--------------------------------
+			--4)CREATing table erp_cust_az12 in bronze fro erp folder..
+			--4)ERP CUSTOMER
+			
+			DROP TABLE IF EXISTS bronze.erp_cust_a2z; 
+			
+			create table bronze.erp_cust_a2z(
+			CID varchar(50),
+			BDATE date,
+			GEN varchar(40)
+			);
+			
+			COPY bronze.erp_cust_a2z
+			FROM 'C:\pg_admin_folder\cust_a2z.csv'
+			DELIMITER ','
+			CSV
+			HEADER
+			NULL '';
+			
+			--select * from bronze.erp_cust_a2z; 
+			----------------------------------------------------------
+			----------------------------------------------------------
+			--5)CREATing table erp_local101 in bronze from erp folder..
+			--5)ERP LOCATION 
+			
+			DROP TABLE IF EXISTS bronze.erp_loca101; 
+			
+			create table bronze.erp_loca101(
+			cid varchar(40),
+			cntry varchar(40)
+			);
+			
+			
+			COPY bronze.erp_loca101
+			FROM 'C:\pg_admin_folder\loca_101.csv'
+			DELIMITER ','
+			CSV
+			HEADER
+			NULL '';
+			
+			--select *from bronze.erp_loca101;
+			
+			
+			----------------------------------------------------
+			----------------------------------------------------
+			--6)CREATing table erp_px_cat_gv12 in bronze from erp folder..
+			--6)ERP PRODUCT CATEGORY
+			
+			DROP TABLE IF EXISTS bronze.erp_px_cat_gv12; 
+			
+			create table bronze.erp_px_cat_gv12(
+			id varchar(40),
+			cat varchar(40),
+			subcat varchar(40),
+			maintenance varchar(40)
+			);
+			
+			
+			COPY bronze.erp_px_cat_gv12
+			FROM 'C:\pg_admin_folder\px_giv.csv'
+			DELIMITER ','
+			CSV
+			HEADER
+			NULL '';
+			
+			--select * from bronze.erp_px_cat_gv12
+			
+			RAISE NOTICE 'BRONZE LAYER SETUP COMPLETED';
+			
+		
+	   
+		 
+end;
+$$;
+
+call bronze.load_bronze();
+
+
+
+
