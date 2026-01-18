@@ -1,0 +1,106 @@
+/*
+___________________________________________________________
+__________________________________________________________
+DDL SCRIPT FOR CREATING GOLD LAYER VIEWS AND IT IS THE FINALIZED TABLES AND VIEWS 
+___________________________________________________________
+___________________________________________________________
+SCRIPT PURPOSE:
+  This script creates views for  the gold layer in the data warehouse
+  The Gold layer represnts the final destination and fact tables (star schema)
+
+  Each view perform transformations and combines data from the silver layer 
+  to prdoucea clean ,enriched and business_ready data set.
+
+USAGE:
+ -These views can be queired directly for analytics and reporting..
+___________________________________________________________________
+_________________________________________________________________
+*/
+--CREATING GOLD LAYER VIEWS  
+
+
+drop view if exists gold.dim_customers 
+
+create view gold.dim_customers 
+AS
+select 
+row_number() over(order by cst_id) as customer_key,
+ci.cst_id as customer_id,
+ci.cst_key as  customer_number,
+ci.cst_firstname,
+ci.cst_lastname,
+lo.cntry as country,
+
+case when  ci.cst_gndr != 'n/a' then ci.cst_gndr
+else coalesce(ca.gen,'n/a')
+end as gender,
+ci.cst_marital_status,
+ca.bdate as birthdate,
+ci.cst_create_date
+from silver.crm_customer_info as ci
+left join silver.erp_cust_a2z as ca 
+ON ci.cst_key=ca.cid
+left join silver.erp_loca101 lo
+on ci.cst_key=lo.cid;
+
+select * from gold.dim_customers;
+
+
+---------------------------
+CREATING gold.dim_products 
+---------------------------
+drop view if exists gold.dim_products
+
+CREATE VIEW gold.dim_products 
+AS
+select 
+row_number() over(order by pd.prd_start_dt,pd.prd_key) as product_key,
+pd.prd_id as product_id,
+pd.prd_key product_number,
+pd.prd_nm as product_name,
+pd.cat_id as caetgory_id,
+pc.cat as category,
+pc.subcat as subcategory,
+pc.maintenance,
+pd.prd_cost as cost,
+pd.prd_line as  product_line,
+pd.prd_start_dt as start_date
+from silver.crm_prd_info as pd
+left join silver.erp_px_cat_gv12 as  pc
+ON pd.cat_id=pc.id
+where pd.prd_end_dt is null --FILTER OUT ONLY CURRENT DATA AND FILTER OUT ALL HISTRY DATA
+
+
+/*------------------------------
+----------------------------
+****CREATING FACT TABLE...*******  
+------------------------------------------
+*************************************************
+--BUILDING THE FACT TABLES OF SALES DETIALS
+**************************************************/
+
+
+/*JOINING FACT AND DIMESION TABLE WITH SUURGOGATE KEYS THAT
+WE HAVE CREATED IN THE DIM TABLES*/
+
+drop view if exists gold.fact_sales
+
+CREATE VIEW gold.fact_sales
+AS 
+select 
+sd.sls_ord_num as order_number,
+dp.product_key,
+dc.customer_key,
+sd.sls_order_dt as  order_date,
+sd.sls_ship_dt as shipping_date,
+sd.sls_due_dt as due_date,
+sd.sls_sales as sales_amount,
+sd.sls_quantity as quantity,
+sd.sls_price as price
+from silver.crm_sales_details as sd
+left join gold.dim_products as dp
+ON sd.sls_prd_key=dp.product_number
+left join gold.dim_customers as dc
+ON sd.sls_cust_id=dc.customer_id
+
+select *from gold.fact_sales;
